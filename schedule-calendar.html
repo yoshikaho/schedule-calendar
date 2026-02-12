@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推しスケジュールカレンダー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        /* フィルターエリア */
+        .filter-area {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+        
+        .filter-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .filter-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .filter-item label {
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        /* カレンダーナビゲーション */
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .calendar-nav button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .calendar-nav button:hover {
+            background: #5568d3;
+        }
+        
+        .current-month {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* カレンダー */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .calendar-header {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+        }
+        
+        .calendar-day {
+            min-height: 100px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+        
+        .calendar-day:hover {
+            background: #f0f0f0;
+        }
+        
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+        
+        .day-number {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .event-item {
+            font-size: 11px;
+            padding: 2px 4px;
+            margin: 2px 0;
+            border-radius: 3px;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .youtube-fetch {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .youtube-fetch input {
+            flex: 1;
+        }
+        
+        .youtube-fetch button {
+            padding: 10px 20px;
+            background: #FF0000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .time-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .time-display {
+            font-size: 24px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .time-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .time-buttons button {
+            padding: 5px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .button-group button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-save {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-delete {
+            background: #ff4757;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: #ddd;
+            color: #333;
+        }
+        
+        /* データ管理ボタン */
+        .data-management {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .data-management button {
+            padding: 10px 20px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 推しスケジュールカレンダー</h1>
+        
+        <!-- フィルターエリア -->
+        <div class="filter-area">
+            <div class="filter-title">表示フィルター</div>
+            <div class="filter-checkboxes" id="filterCheckboxes">
+                <!-- JavaScriptで生成 -->
+            </div>
+        </div>
+        
+        <!-- カレンダーナビゲーション -->
+        <div class="calendar-nav">
+            <button onclick="changeMonth(-1)">◀ 前月</button>
+            <div class="current-month" id="currentMonth"></div>
+            <button onclick="changeMonth(1)">次月 ▶</button>
+        </div>
+        
+        <!-- カレンダー -->
+        <div class="calendar" id="calendar">
+            <!-- JavaScriptで生成 -->
+        </div>
+        
+        <!-- データ管理 -->
+        <div class="data-management">
+            <button onclick="exportJSON()">JSONバックアップ</button>
+            <button onclick="importJSON()">JSON復元</button>
+        </div>
+    </div>
+    
+    <!-- モーダル -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">予定を追加</div>
+            
+            <div class="form-group">
+                <label>YouTube URL</label>
+                <div class="youtube-fetch">
+                    <input type="text" id="youtubeUrl" placeholder="https://youtube.com/...">
+                    <button onclick="fetchYouTubeData()">取得</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>タイトル</label>
+                <input type="text" id="eventTitle" placeholder="配信タイトル">
+            </div>
+            
+            <div class="form-group">
+                <label>カテゴリ</label>
+                <select id="eventCategory" onchange="updateSubCategories()">
+                    <option value="配信">配信</option>
+                    <option value="大会">大会</option>
+                    <option value="オフイベ">オフラインイベント</option>
+                    <option value="グッズ">グッズ発売</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>サブカテゴリ</label>
+                <select id="eventSubCategory">
+                    <!-- JavaScriptで生成 -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>開始時間</label>
+                <div class="time-input-group">
+                    <div class="time-display" id="startTimeDisplay">22:00</div>
+                    <div class="time-buttons">
+                        <button onclick="adjustTime('start', 30)">+30分</button>
+                        <button onclick="adjustTime('start', -30)">-30分</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>終了時間</label>
+                <div class="time-input-group">
+                    <div class="time-display" id="endTimeDisplay">01:00</div>
+                    <div class="time-buttons">
+                        <button onclick="adjustTime('end', 30)">+30分</button>
+                        <button onclick="adjustTime('end', -30)">-30分</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-save" onclick="saveEvent()">保存</button>
+                <button class="btn-delete" id="deleteBtn" onclick="deleteEvent()" style="display:none;">削除</button>
+                <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ここにJavaScriptコードが続きます
+
+// APIキー（ここに自分のキーを入れてね）
+        const YOUTUBE_API_KEY = 'AIzaSyCNOHvaz0HS2c-kq7hDjmu4LEkZOn7EVuI';
+        
+        // カテゴリと色の設定
+        const CATEGORIES = {
+            '配信': {
+                color: '#E74C3C',
+                subCategories: ['ホラー', 'トーク', 'ゲーム実況', 'コラボ', 'その他']
+            },
+            '大会': {
+                color: '#3498DB',
+                subCategories: ['個人戦', 'チーム戦', 'その他']
+            },
+            'オフイベ': {
+                color: '#2ECC71',
+                subCategories: ['ファンミ', 'イベント出演', 'その他']
+            },
+            'グッズ': {
+                color: '#F39C12',
+                subCategories: ['通常販売', '限定販売', 'その他']
+            }
+        };
+        
+        const SUB_CATEGORY_COLORS = {
+            'ホラー': '#9B59B6',
+            'トーク': '#E67E22',
+            'ゲーム実況': '#1ABC9C',
+            'コラボ': '#E91E63',
+            '個人戦': '#3498DB',
+            'チーム戦': '#2980B9',
+            'ファンミ': '#27AE60',
+            'イベント出演': '#16A085',
+            '通常販売': '#F39C12',
+            '限定販売': '#D35400',
+            'その他': '#95A5A6'
+        };
+        
+        // グローバル変数
+        let events = [];
+        let currentDate = new Date();
+        let selectedDate = null;
+        let editingEventId = null;
+        let currentStartTime = 22 * 60; // 22:00を分で管理
+        let currentEndTime = 60; // 01:00を分で管理（翌日）
+        let activeFilters = new Set();
+        
+        // 初期化
+        function init() {
+            loadEvents();
+            initFilters();
+            renderCalendar();
+            updateSubCategories();
+        }
+        
+        // フィルター初期化
+        function initFilters() {
+            const container = document.getElementById('filterCheckboxes');
+            container.innerHTML = '';
+            
+            // メインカテゴリフィルター
+            Object.keys(CATEGORIES).forEach(category => {
+                activeFilters.add(category);
+                const item = document.createElement('div');
+                item.className = 'filter-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="filter-${category}" checked onchange="toggleFilter('${category}')">
+                    <label for="filter-${category}" style="color: ${CATEGORIES[category].color}">${category}</label>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        // フィルター切り替え
+        function toggleFilter(category) {
+            if (activeFilters.has(category)) {
+                activeFilters.delete(category);
+            } else {
+                activeFilters.add(category);
+            }
+            renderCalendar();
+        }
+        
+        // カレンダー描画
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // 月表示更新
+            document.getElementById('currentMonth').textContent = 
+                `${year}年 ${month + 1}月`;
+            
+            // カレンダーをクリア
+            calendar.innerHTML = '';
+            
+            // 曜日ヘッダー
+            const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+            weekdays.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+            
+            // 月の最初の日と最後の日
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDay = firstDay.getDay(); // 0 = 日曜日
+            
+            // 前月の日付
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+            for (let i = startDay - 1; i >= 0; i--) {
+                const dayDiv = createDayCell(prevMonthLastDay - i, true, year, month - 1);
+                calendar.appendChild(dayDiv);
+            }
+            
+            // 当月の日付
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dayDiv = createDayCell(day, false, year, month);
+                calendar.appendChild(dayDiv);
+            }
+            
+            // 次月の日付（6週分埋める）
+            const totalCells = calendar.children.length - 7; // ヘッダー除く
+            const remainingCells = 42 - totalCells; // 6週 × 7日
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayDiv = createDayCell(day, true, year, month + 1);
+                calendar.appendChild(dayDiv);
+            }
+        }
+        
+        // 日付セル作成
+        function createDayCell(day, isOtherMonth, year, month) {
+            const div = document.createElement('div');
+            div.className = 'calendar-day';
+            if (isOtherMonth) {
+                div.className += ' other-month';
+            }
+            
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.textContent = day;
+            div.appendChild(dayNumber);
+            
+            // その日の予定を表示
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayEvents = events.filter(e => 
+                e.date === dateStr && activeFilters.has(e.category)
+            );
+            
+            dayEvents.forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'event-item';
+                eventDiv.style.background = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
+                eventDiv.textContent = event.title;
+                eventDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    openEditModal(event);
+                };
+                div.appendChild(eventDiv);
+            });
+            
+            // 日付クリックで新規追加
+            div.onclick = () => {
+                if (!isOtherMonth) {
+                    openAddModal(dateStr);
+                }
+            };
+            
+            return div;
+        }
+        
+        // 月変更
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+        
+        // サブカテゴリ更新
+        function updateSubCategories() {
+            const category = document.getElementById('eventCategory').value;
+            const subSelect = document.getElementById('eventSubCategory');
+            subSelect.innerHTML = '';
+            
+            CATEGORIES[category].subCategories.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub;
+                option.textContent = sub;
+                subSelect.appendChild(option);
+            });
+        }
+        
+        // 時間調整
+        function adjustTime(type, minutes) {
+            if (type === 'start') {
+                currentStartTime += minutes;
+                if (currentStartTime < 0) currentStartTime += 24 * 60;
+                if (currentStartTime >= 24 * 60) currentStartTime -= 24 * 60;
+                document.getElementById('startTimeDisplay').textContent = minutesToTime(currentStartTime);
+            } else {
+                currentEndTime += minutes;
+                if (currentEndTime < 0) currentEndTime += 24 * 60;
+                if (currentEndTime >= 24 * 60) currentEndTime -= 24 * 60;
+                document.getElementById('endTimeDisplay').textContent = minutesToTime(currentEndTime);
+            }
+        }
+        
+        // 分を時刻に変換
+        function minutesToTime(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+        
+        // 時刻を分に変換
+        function timeToMinutes(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+// YouTube データ取得
+        async function fetchYouTubeData() {
+            const url = document.getElementById('youtubeUrl').value;
+            const videoId = extractVideoId(url);
+            
+            if (!videoId) {
+                alert('正しいYouTube URLを入力してください');
+                return;
+            }
+            
+            try {
+                const response = await fetch(
+                    `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,liveStreamingDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`
+                );
+                const data = await response.json();
+                
+                if (data.items && data.items.length > 0) {
+                    const video = data.items[0];
+                    const title = video.snippet.title;
+                    
+                    // タイトル設定
+                    document.getElementById('eventTitle').value = title;
+                    
+                    // 配信時刻取得
+                    let startTime, endTime;
+                    
+                    // ライブ配信の場合
+                    if (video.liveStreamingDetails) {
+                        const actualStartTime = video.liveStreamingDetails.actualStartTime;
+                        const actualEndTime = video.liveStreamingDetails.actualEndTime;
+                        
+                        if (actualStartTime) {
+                            const start = new Date(actualStartTime);
+                            startTime = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
+                            currentStartTime = timeToMinutes(startTime);
+                            document.getElementById('startTimeDisplay').textContent = startTime;
+                        }
+                        
+                        if (actualEndTime) {
+                            const end = new Date(actualEndTime);
+                            endTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+                            currentEndTime = timeToMinutes(endTime);
+                            document.getElementById('endTimeDisplay').textContent = endTime;
+                        } else if (actualStartTime) {
+                            // 終了時刻がない場合、動画時間から計算
+                            const duration = parseDuration(video.contentDetails.duration);
+                            currentEndTime = currentStartTime + duration;
+                            if (currentEndTime >= 24 * 60) currentEndTime -= 24 * 60;
+                            document.getElementById('endTimeDisplay').textContent = minutesToTime(currentEndTime);
+                        }
+                    } else {
+                        // 通常動画の場合は公開日時を使用
+                        const publishedAt = new Date(video.snippet.publishedAt);
+                        startTime = `${String(publishedAt.getHours()).padStart(2, '0')}:${String(publishedAt.getMinutes()).padStart(2, '0')}`;
+                        currentStartTime = timeToMinutes(startTime);
+                        document.getElementById('startTimeDisplay').textContent = startTime;
+                        
+                        // 動画時間から終了時刻計算
+                        const duration = parseDuration(video.contentDetails.duration);
+                        currentEndTime = currentStartTime + duration;
+                        if (currentEndTime >= 24 * 60) currentEndTime -= 24 * 60;
+                        document.getElementById('endTimeDisplay').textContent = minutesToTime(currentEndTime);
+                    }
+                    
+                    alert('データを取得しました！');
+                } else {
+                    alert('動画が見つかりませんでした');
+                }
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
+        
+        // YouTube動画IDを抽出
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+        
+        // ISO 8601 duration を分に変換
+        function parseDuration(duration) {
+            const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            const hours = parseInt(match[1] || 0);
+            const minutes = parseInt(match[2] || 0);
+            const seconds = parseInt(match[3] || 0);
+            return hours * 60 + minutes + (seconds > 30 ? 1 : 0); // 秒は四捨五入
+        }
+        
+        // モーダルを開く（新規追加）
+        function openAddModal(date) {
+            selectedDate = date;
+            editingEventId = null;
+            
+            document.getElementById('modalHeader').textContent = '予定を追加';
+            document.getElementById('youtubeUrl').value = '';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventCategory').value = '配信';
+            updateSubCategories();
+            
+            // デフォルト時間設定
+            currentStartTime = 22 * 60; // 22:00
+            currentEndTime = 60; // 01:00
+            document.getElementById('startTimeDisplay').textContent = '22:00';
+            document.getElementById('endTimeDisplay').textContent = '01:00';
+            
+            document.getElementById('deleteBtn').style.display = 'none';
+            document.getElementById('eventModal').classList.add('active');
+        }
+        
+        // モーダルを開く（編集）
+        function openEditModal(event) {
+            selectedDate = event.date;
+            editingEventId = event.id;
+            
+            document.getElementById('modalHeader').textContent = '予定を編集';
+            document.getElementById('youtubeUrl').value = event.youtubeUrl || '';
+            document.getElementById('eventTitle').value = event.title;
+            document.getElementById('eventCategory').value = event.category;
+            updateSubCategories();
+            document.getElementById('eventSubCategory').value = event.subCategory;
+            
+            currentStartTime = timeToMinutes(event.startTime);
+            currentEndTime = timeToMinutes(event.endTime);
+            document.getElementById('startTimeDisplay').textContent = event.startTime;
+            document.getElementById('endTimeDisplay').textContent = event.endTime;
+            
+            document.getElementById('deleteBtn').style.display = 'block';
+            document.getElementById('eventModal').classList.add('active');
+        }
+        
+        // モーダルを閉じる
+        function closeModal() {
+            document.getElementById('eventModal').classList.remove('active');
+        }
+        
+        // 予定を保存
+        function saveEvent() {
+            const title = document.getElementById('eventTitle').value;
+            const category = document.getElementById('eventCategory').value;
+            const subCategory = document.getElementById('eventSubCategory').value;
+            const youtubeUrl = document.getElementById('youtubeUrl').value;
+            
+            if (!title) {
+                alert('タイトルを入力してください');
+                return;
+            }
+            
+            const event = {
+                id: editingEventId || Date.now().toString(),
+                date: selectedDate,
+                title: title,
+                category: category,
+                subCategory: subCategory,
+                startTime: minutesToTime(currentStartTime),
+                endTime: minutesToTime(currentEndTime),
+                youtubeUrl: youtubeUrl,
+                color: SUB_CATEGORY_COLORS[subCategory] || CATEGORIES[category].color
+            };
+            
+            if (editingEventId) {
+                // 編集
+                const index = events.findIndex(e => e.id === editingEventId);
+                events[index] = event;
+            } else {
+                // 新規追加
+                events.push(event);
+            }
+            
+            saveEvents();
+            renderCalendar();
+            closeModal();
+        }
+        
+        // 予定を削除
+        function deleteEvent() {
+            if (confirm('この予定を削除しますか？')) {
+                events = events.filter(e => e.id !== editingEventId);
+                saveEvents();
+                renderCalendar();
+                closeModal();
+            }
+        }
+        
+        // ローカルストレージに保存
+        function saveEvents() {
+            localStorage.setItem('scheduleEvents', JSON.stringify(events));
+        }
+        
+        // ローカルストレージから読み込み
+        function loadEvents() {
+            const saved = localStorage.getItem('scheduleEvents');
+            if (saved) {
+                events = JSON.parse(saved);
+            }
+        }
+        
+        // JSONエクスポート
+        function exportJSON() {
+            const dataStr = JSON.stringify(events, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `schedule-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+        
+        // JSONインポート
+        function importJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        events = JSON.parse(event.target.result);
+                        saveEvents();
+                        renderCalendar();
+                        alert('データを復元しました！');
+                    } catch (error) {
+                        alert('ファイルの読み込みに失敗しました');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        // ページ読み込み時に初期化
+        window.onload = init;
+
+    </script>
+</body>
+</html>
