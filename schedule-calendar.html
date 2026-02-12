@@ -552,11 +552,14 @@
                 e.date === dateStr && activeFilters.has(e.category)
             );
             
-            dayEvents.forEach(event => {
-                const eventDiv = document.createElement('div');
-                eventDiv.className = 'event-item';
-                eventDiv.style.background = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
-                eventDiv.textContent = event.title;
+dayEvents.forEach(event => {
+    const eventDiv = document.createElement('div');
+    eventDiv.className = 'event-item';
+    eventDiv.style.background = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
+    
+    // タイトルを10文字で省略 + 時間表示
+    const shortTitle = event.title.length > 10 ? event.title.substring(0, 10) + '...' : event.title;
+    eventDiv.innerHTML = `${shortTitle}<br>${event.startTime}-${event.endTime}`;
                 eventDiv.onclick = (e) => {
                     e.stopPropagation();
                     openEditModal(event);
@@ -858,4 +861,5 @@
 
     </script>
 </body>
+
 </html>
