@@ -246,6 +246,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+            font-size: 10px;
         }
         
         .time-buttons button {
@@ -255,7 +256,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 13px;
         }
         
         .button-group {
@@ -263,6 +264,7 @@
             gap: 10px;
             margin-top: 20px;
         }
+
         
         .button-group button {
             flex: 1;
@@ -369,6 +371,13 @@
                 </div>
             </div>
             
+                        <div class="button-group">
+<button id="watchBtn" style="display: none; width: 60%; padding: 12px; background: #f08e8e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; margin-bottom: 10px;">
+                ▶ YouTubeで視聴
+            </button>
+            </div>
+
+
             <div class="form-group">
                 <label>タイトル</label>
                 <input type="text" id="eventTitle" placeholder="配信タイトル">
@@ -760,6 +769,9 @@
             
             document.getElementById('deleteBtn').style.display = 'none';
             document.getElementById('eventModal').classList.add('active');
+
+            // openAddModal関数の最後あたりに追加
+document.getElementById('watchBtn').style.display = 'none';
         }
         
         // モーダルを開く（編集）
@@ -781,6 +793,14 @@
             
             document.getElementById('deleteBtn').style.display = 'block';
             document.getElementById('eventModal').classList.add('active');
+        // 視聴ボタンの表示/非表示
+const watchBtn = document.getElementById('watchBtn');
+if (event.youtubeUrl) {
+    watchBtn.style.display = 'block';
+    watchBtn.onclick = () => window.open(event.youtubeUrl, '_blank');
+} else {
+    watchBtn.style.display = 'none';
+}
         }
         
         // モーダルを閉じる
