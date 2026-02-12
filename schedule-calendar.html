@@ -232,12 +232,15 @@
             gap: 10px;
         }
         
-        .time-display {
-            font-size: 24px;
-            font-weight: bold;
-            min-width: 80px;
-            text-align: center;
-        }
+.time-display {
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 120px;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
         
         .time-buttons {
             display: flex;
@@ -326,6 +329,25 @@
         <div class="calendar" id="calendar">
             <!-- JavaScriptで生成 -->
         </div>
+
+        <!-- 一括取得エリア -->
+        <div class="bulk-import-area" style="margin-top: 20px; padding: 20px; background: #f8f9ff; border-radius: 10px;">
+            <div style="font-weight: bold; margin-bottom: 15px; color: #667eea; font-size: 18px;">📺 チャンネルから一括取得</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="channelUrl" placeholder="チャンネルURLまたはチャンネルID" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="fetchStartDate" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; flex: 1;">
+                    <span style="display: flex; align-items: center;">〜</span>
+                    <input type="date" id="fetchEndDate" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; flex: 1;">
+                </div>
+                
+                <button onclick="bulkFetchVideos()" style="padding: 12px; background: #FF0000; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                    動画を一括取得
+                </button>
+            </div>
+        </div>
         
         <!-- データ管理 -->
         <div class="data-management">
@@ -369,27 +391,27 @@
                 </select>
             </div>
             
-            <div class="form-group">
-                <label>開始時間</label>
-                <div class="time-input-group">
-                    <div class="time-display" id="startTimeDisplay">22:00</div>
-                    <div class="time-buttons">
-                        <button onclick="adjustTime('start', 30)">+30分</button>
-                        <button onclick="adjustTime('start', -30)">-30分</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>終了時間</label>
-                <div class="time-input-group">
-                    <div class="time-display" id="endTimeDisplay">01:00</div>
-                    <div class="time-buttons">
-                        <button onclick="adjustTime('end', 30)">+30分</button>
-                        <button onclick="adjustTime('end', -30)">-30分</button>
-                    </div>
-                </div>
-            </div>
+<div class="form-group">
+    <label>開始時間</label>
+    <div class="time-input-group">
+        <input type="time" class="time-display" id="startTimeDisplay" value="22:00">
+        <div class="time-buttons">
+            <button onclick="adjustTime('start', 30)">+30分</button>
+            <button onclick="adjustTime('start', -30)">-30分</button>
+        </div>
+    </div>
+</div>
+
+<div class="form-group">
+    <label>終了時間</label>
+    <div class="time-input-group">
+        <input type="time" class="time-display" id="endTimeDisplay" value="01:00">
+        <div class="time-buttons">
+            <button onclick="adjustTime('end', 30)">+30分</button>
+            <button onclick="adjustTime('end', -30)">-30分</button>
+        </div>
+    </div>
+</div>
             
             <div class="button-group">
                 <button class="btn-save" onclick="saveEvent()">保存</button>
@@ -552,7 +574,7 @@
                 e.date === dateStr && activeFilters.has(e.category)
             );
             
-dayEvents.forEach(event => {
+            dayEvents.forEach(event => {
     const eventDiv = document.createElement('div');
     eventDiv.className = 'event-item';
     eventDiv.style.background = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
@@ -599,17 +621,20 @@ dayEvents.forEach(event => {
         
         // 時間調整
         function adjustTime(type, minutes) {
-            if (type === 'start') {
-                currentStartTime += minutes;
-                if (currentStartTime < 0) currentStartTime += 24 * 60;
-                if (currentStartTime >= 24 * 60) currentStartTime -= 24 * 60;
-                document.getElementById('startTimeDisplay').textContent = minutesToTime(currentStartTime);
-            } else {
-                currentEndTime += minutes;
-                if (currentEndTime < 0) currentEndTime += 24 * 60;
-                if (currentEndTime >= 24 * 60) currentEndTime -= 24 * 60;
-                document.getElementById('endTimeDisplay').textContent = minutesToTime(currentEndTime);
-            }
+                const displayElement = document.getElementById(type === 'start' ? 'startTimeDisplay' : 'endTimeDisplay');
+    let currentTime = timeToMinutes(displayElement.value);
+    
+    currentTime += minutes;
+    if (currentTime < 0) currentTime += 24 * 60;
+    if (currentTime >= 24 * 60) currentTime -= 24 * 60;
+    
+    displayElement.value = minutesToTime(currentTime);
+    
+    if (type === 'start') {
+        currentStartTime = currentTime;
+    } else {
+        currentEndTime = currentTime;
+    }
         }
         
         // 分を時刻に変換
@@ -855,11 +880,127 @@ dayEvents.forEach(event => {
             };
             input.click();
         }
+
+        // チャンネルIDを抽出
+        function extractChannelId(input) {
+            // チャンネルURLのパターン
+            const patterns = [
+                /youtube\.com\/channel\/([a-zA-Z0-9_-]+)/,
+                /youtube\.com\/@([a-zA-Z0-9_-]+)/,
+                /youtube\.com\/c\/([a-zA-Z0-9_-]+)/
+            ];
+            
+            for (let pattern of patterns) {
+                const match = input.match(pattern);
+                if (match) return match[1];
+            }
+            
+            // そのままチャンネルIDとして扱う
+            return input.trim();
+        }
+        
+        // 一括取得
+        async function bulkFetchVideos() {
+            const channelInput = document.getElementById('channelUrl').value;
+            const startDate = document.getElementById('fetchStartDate').value;
+            const endDate = document.getElementById('fetchEndDate').value;
+            
+            if (!channelInput) {
+                alert('チャンネルURLまたはIDを入力してください');
+                return;
+            }
+            
+            if (!startDate || !endDate) {
+                alert('取得する期間を指定してください');
+                return;
+            }
+            
+            const channelId = extractChannelId(channelInput);
+            
+            // 日付をISO形式に変換
+            const publishedAfter = new Date(startDate).toISOString();
+            const publishedBefore = new Date(endDate + 'T23:59:59').toISOString();
+            
+            try {
+                // まずチャンネルIDから動画を検索
+                const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&publishedAfter=${publishedAfter}&publishedBefore=${publishedBefore}&maxResults=50&order=date&type=video&key=${YOUTUBE_API_KEY}`;
+                
+                const searchResponse = await fetch(searchUrl);
+                const searchData = await searchResponse.json();
+                
+                if (!searchData.items || searchData.items.length === 0) {
+                    alert('指定期間の動画が見つかりませんでした');
+                    return;
+                }
+                
+                // 各動画の詳細情報を取得
+                const videoIds = searchData.items.map(item => item.id.videoId).join(',');
+                const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,liveStreamingDetails&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+                
+                const detailsResponse = await fetch(detailsUrl);
+                const detailsData = await detailsResponse.json();
+                
+                let addedCount = 0;
+                
+                // 各動画を予定として追加
+                detailsData.items.forEach(video => {
+                    const title = video.snippet.title;
+                    let videoDate, startTime, endTime;
+                    
+                    // ライブ配信の場合
+                    if (video.liveStreamingDetails && video.liveStreamingDetails.actualStartTime) {
+                        const start = new Date(video.liveStreamingDetails.actualStartTime);
+                        videoDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+                        startTime = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
+                        
+                        if (video.liveStreamingDetails.actualEndTime) {
+                            const end = new Date(video.liveStreamingDetails.actualEndTime);
+                            endTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+                        } else {
+                            const duration = parseDuration(video.contentDetails.duration);
+                            const endMinutes = timeToMinutes(startTime) + duration;
+                            endTime = minutesToTime(endMinutes >= 24 * 60 ? endMinutes - 24 * 60 : endMinutes);
+                        }
+                    } else {
+                        // 通常動画の場合
+                        const published = new Date(video.snippet.publishedAt);
+                        videoDate = `${published.getFullYear()}-${String(published.getMonth() + 1).padStart(2, '0')}-${String(published.getDate()).padStart(2, '0')}`;
+                        startTime = `${String(published.getHours()).padStart(2, '0')}:${String(published.getMinutes()).padStart(2, '0')}`;
+                        
+                        const duration = parseDuration(video.contentDetails.duration);
+                        const endMinutes = timeToMinutes(startTime) + duration;
+                        endTime = minutesToTime(endMinutes >= 24 * 60 ? endMinutes - 24 * 60 : endMinutes);
+                    }
+                    
+                    const event = {
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                        date: videoDate,
+                        title: title,
+                        category: '配信',
+                        subCategory: 'その他',
+                        startTime: startTime,
+                        endTime: endTime,
+                        youtubeUrl: `https://www.youtube.com/watch?v=${video.id}`,
+                        color: SUB_CATEGORY_COLORS['その他']
+                    };
+                    
+                    events.push(event);
+                    addedCount++;
+                });
+                
+                saveEvents();
+                renderCalendar();
+                alert(`${addedCount}件の動画を追加しました！\nカテゴリは後で編集してね。`);
+                
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+                console.error(error);
+            }
+        }
         
         // ページ読み込み時に初期化
         window.onload = init;
 
     </script>
 </body>
-
 </html>
