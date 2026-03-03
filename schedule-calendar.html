@@ -1022,9 +1022,27 @@ if (event.youtubeUrl) {
             }
         }
         
+        // Escキーでモーダルを閉じる
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('eventModal');
+                if (modal.classList.contains('active')) {
+                    closeModal();
+                }
+            }
+        });
+
+        // モーダル背景クリックで閉じる
+        document.getElementById('eventModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
         // ページ読み込み時に初期化
         window.onload = init;
 
     </script>
 </body>
+
 </html>
