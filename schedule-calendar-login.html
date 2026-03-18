@@ -586,10 +586,7 @@
         const endTime = minutesToTime(currentEndTime);
         const color = SUB_CATEGORY_COLORS[subCategory] || CATEGORIES[category].color;
 
-        alert('デバッグ: 保存開始
-editingEventId=' + editingEventId + '
-selectedDate=' + selectedDate + '
-currentUser=' + (currentUser ? currentUser.id : 'null'));
+        alert('デバッグ: 保存開始 editingEventId=' + editingEventId + ' selectedDate=' + selectedDate + ' currentUser=' + (currentUser ? currentUser.id : 'null'));
 
         showLoading();
         try {
