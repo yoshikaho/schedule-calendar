@@ -592,12 +592,13 @@
         try {
             if (editingEventId) {
                 alert('デバッグ: 更新処理');
-                const { error } = await sb.from('events').update({
+                const { data: updateData, error } = await sb.from('events').update({
                     date: selectedDate, title, category,
                     sub_category: subCategory,
                     start_time: startTime, end_time: endTime,
                     youtube_url: youtubeUrl, color
-                }).eq('id', editingEventId);
+                }).eq('id', editingEventId).select();
+                alert('デバッグ: 更新結果 error=' + JSON.stringify(error) + ' data=' + JSON.stringify(updateData));
                 if (error) { alert('更新エラー: ' + JSON.stringify(error)); hideLoading(); return; }
                 alert('デバッグ: 更新成功');
                 const idx = events.findIndex(e => e.id === editingEventId);
