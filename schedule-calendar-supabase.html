@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推しスケジュールカレンダー</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ログイン画面 */
+        #authScreen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .auth-box h2 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            color: #999;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            margin-bottom: -2px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .auth-btn:hover { background: #5568d3; }
+
+        .auth-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #e74c3c;
+        }
+
+        .auth-msg.success { color: #27ae60; }
+
+        /* メイン画面 */
+        #mainScreen { display: none; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 28px;
+        }
+
+        .logout-btn {
+            padding: 8px 18px;
+            background: #eee;
+            color: #555;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover { background: #ddd; }
+
+        .filter-area {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .filter-title { font-weight: bold; margin-bottom: 10px; color: #667eea; }
+
+        .filter-checkboxes { display: flex; flex-wrap: wrap; gap: 15px; }
+
+        .filter-item { display: flex; align-items: center; gap: 5px; }
+
+        .filter-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+
+        .filter-item label { cursor: pointer; font-size: 14px; }
+
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-nav button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .calendar-nav button:hover { background: #5568d3; }
+
+        .current-month { font-size: 20px; font-weight: bold; color: #333; }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .calendar-day {
+            min-height: 100px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .calendar-day:hover { background: #f0f0f0; }
+
+        .calendar-day.other-month { opacity: 0.3; }
+
+        .day-number { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+
+        .event-item {
+            font-size: 11px;
+            padding: 2px 4px;
+            margin: 2px 0;
+            border-radius: 3px;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 20px; color: #667eea; }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .youtube-fetch { display: flex; gap: 10px; align-items: flex-end; }
+        .youtube-fetch input { flex: 1; }
+        .youtube-fetch button {
+            padding: 10px 20px;
+            background: #FF0000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .time-input-group { display: flex; align-items: center; gap: 10px; }
+        .time-display {
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 120px;
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .time-buttons { display: flex; flex-direction: column; gap: 5px; }
+        .time-buttons button {
+            padding: 5px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .button-group { display: flex; gap: 10px; margin-top: 20px; }
+        .button-group button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+
+        .btn-save { background: #667eea; color: white; }
+        .btn-delete { background: #ff4757; color: white; }
+        .btn-cancel { background: #ddd; color: #333; }
+
+        .data-management { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        .data-management button {
+            padding: 10px 20px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* ローディング */
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        #loadingOverlay.active { display: flex; }
+    </style>
+</head>
+<body>
+
+<!-- ローディング -->
+<div id="loadingOverlay">読み込み中...</div>
+
+<!-- ログイン画面 -->
+<div id="authScreen">
+    <div class="auth-box">
+        <h2>🎮 推しカレンダー</h2>
+        <div class="auth-tabs">
+            <div class="auth-tab active" id="loginTab" onclick="switchTab('login')">ログイン</div>
+            <div class="auth-tab" id="signupTab" onclick="switchTab('signup')">新規登録</div>
+        </div>
+        <input type="email" class="auth-input" id="authEmail" placeholder="メールアドレス">
+        <input type="password" class="auth-input" id="authPassword" placeholder="パスワード（6文字以上）">
+        <button class="auth-btn" id="authBtn" onclick="handleAuth()">ログイン</button>
+        <div class="auth-msg" id="authMsg"></div>
+    </div>
+</div>
+
+<!-- メイン画面 -->
+<div id="mainScreen">
+    <div class="container">
+        <div class="header-row">
+            <h1>🎮 推しスケジュールカレンダー</h1>
+            <button class="logout-btn" onclick="logout()">ログアウト</button>
+        </div>
+
+        <div class="filter-area">
+            <div class="filter-title">表示フィルター</div>
+            <div class="filter-checkboxes" id="filterCheckboxes"></div>
+        </div>
+
+        <div class="calendar-nav">
+            <button onclick="changeMonth(-1)">◀ 前月</button>
+            <div class="current-month" id="currentMonth"></div>
+            <button onclick="changeMonth(1)">次月 ▶</button>
+        </div>
+
+        <div class="calendar" id="calendar"></div>
+
+        <!-- 一括取得エリア -->
+        <div style="margin-top: 20px; padding: 20px; background: #f8f9ff; border-radius: 10px;">
+            <div style="font-weight: bold; margin-bottom: 15px; color: #667eea; font-size: 18px;">📺 チャンネルから一括取得</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="channelUrl" placeholder="チャンネルURLまたはチャンネルID" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="fetchStartDate" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; flex: 1;">
+                    <span style="display: flex; align-items: center;">〜</span>
+                    <input type="date" id="fetchEndDate" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; flex: 1;">
+                </div>
+                <button onclick="bulkFetchVideos()" style="padding: 12px; background: #FF0000; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">動画を一括取得</button>
+            </div>
+        </div>
+
+        <div class="data-management">
+            <button onclick="exportJSON()">JSONバックアップ</button>
+            <button onclick="importJSON()">JSON復元</button>
+        </div>
+    </div>
+</div>
+
+<!-- イベントモーダル -->
+<div class="modal" id="eventModal">
+    <div class="modal-content">
+        <div class="modal-header" id="modalHeader">予定を追加</div>
+
+        <div class="form-group">
+            <label>YouTube URL</label>
+            <div class="youtube-fetch">
+                <input type="text" id="youtubeUrl" placeholder="https://youtube.com/...">
+                <button onclick="fetchYouTubeData()">取得</button>
+            </div>
+        </div>
+
+        <button type="button" id="watchBtn" style="display: none; width: 60%; padding: 12px; background: #f08e8e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; margin-bottom: 10px;">▶ YouTubeで視聴</button>
+
+        <div class="form-group">
+            <label>タイトル</label>
+            <input type="text" id="eventTitle" placeholder="配信タイトル">
+        </div>
+
+        <div class="form-group">
+            <label>カテゴリ</label>
+            <select id="eventCategory" onchange="updateSubCategories()">
+                <option value="配信">配信</option>
+                <option value="大会">大会</option>
+                <option value="オフイベ">オフラインイベント</option>
+                <option value="グッズ">グッズ発売</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>サブカテゴリ</label>
+            <select id="eventSubCategory"></select>
+        </div>
+
+        <div class="form-group">
+            <label>開始時間</label>
+            <div class="time-input-group">
+                <input type="time" class="time-display" id="startTimeDisplay" value="22:00">
+                <div class="time-buttons">
+                    <button onclick="adjustTime('start', 30)">+30分</button>
+                    <button onclick="adjustTime('start', -30)">-30分</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>終了時間</label>
+            <div class="time-input-group">
+                <input type="time" class="time-display" id="endTimeDisplay" value="01:00">
+                <div class="time-buttons">
+                    <button onclick="adjustTime('end', 30)">+30分</button>
+                    <button onclick="adjustTime('end', -30)">-30分</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button type="button" class="btn-save" onclick="saveEvent()">保存</button>
+            <button type="button" class="btn-delete" id="deleteBtn" onclick="deleteEvent()" style="display:none;">削除</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ====================================================
+    // ここを自分のSupabase情報に書き換えてね！
+    // ====================================================
+    const SUPABASE_URL = 'https://dzlrvtkfbcoaeeoahrtq.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Fs3svHkD8Q90gFxLuwuAow_lRYtaY_d';
+    // ====================================================
+
+    const YOUTUBE_API_KEY = 'AIzaSyCNOHvaz0HS2c-kq7hDjmu4LEkZOn7EVuI';
+
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const CATEGORIES = {
+        '配信': { color: '#E74C3C', subCategories: ['ホラー', 'ゲーム実況', 'コラボ', 'メン限', '案件', 'トーク', '音楽', 'その他'] },
+        '大会': { color: '#3498DB', subCategories: ['練習', '個人戦', 'チーム戦', 'その他'] },
+        'オフイベ': { color: '#2ECC71', subCategories: ['ファンミ', 'イベント出演', 'その他'] },
+        'グッズ': { color: '#F39C12', subCategories: ['通常販売', '限定販売', 'その他'] }
+    };
+
+    const SUB_CATEGORY_COLORS = {
+        'ホラー': '#9B59B6', 'トーク': '#E67E22', 'ゲーム実況': '#1ABC9C',
+        'コラボ': '#E91E63', 'メン限': '#3a9e57', '音楽': '#e3bb4d',
+        '案件': '#3a499e', '練習': '#6dbad2', '個人戦': '#3498DB',
+        'チーム戦': '#2980B9', 'ファンミ': '#27AE60', 'イベント出演': '#16A085',
+        '通常販売': '#F39C12', '限定販売': '#D35400', 'その他': '#95A5A6'
+    };
+
+    let events = [];
+    let currentDate = new Date();
+    let selectedDate = null;
+    let editingEventId = null;
+    let currentStartTime = 22 * 60;
+    let currentEndTime = 60;
+    let activeFilters = new Set();
+    let currentUser = null;
+    let currentTab = 'login';
+
+    // ====================================================
+    // 認証まわり
+    // ====================================================
+
+    function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+    function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+        document.getElementById('signupTab').classList.toggle('active', tab === 'signup');
+        document.getElementById('authBtn').textContent = tab === 'login' ? 'ログイン' : '新規登録';
+        document.getElementById('authMsg').textContent = '';
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        const msg = document.getElementById('authMsg');
+
+        if (!email || !password) {
+            msg.textContent = 'メールアドレスとパスワードを入力してください';
+            msg.className = 'auth-msg';
+            return;
+        }
+
+        showLoading();
+        try {
+            if (currentTab === 'login') {
+                const { error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+            } else {
+                const { error } = await sb.auth.signUp({ email, password });
+                if (error) throw error;
+                msg.textContent = '確認メールを送りました！メールのリンクをクリックしてね';
+                msg.className = 'auth-msg success';
+                hideLoading();
+                return;
+            }
+        } catch (e) {
+            msg.textContent = 'エラー: ' + (e.message || '認証に失敗しました');
+            msg.className = 'auth-msg';
+            hideLoading();
+        }
+    }
+
+    async function logout() {
+        await sb.auth.signOut();
+    }
+
+    // ログイン状態の変化を監視
+    sb.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'block';
+            await loadEvents();
+            initFilters();
+            renderCalendar();
+            updateSubCategories();
+            hideLoading();
+        } else {
+            currentUser = null;
+            events = [];
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('mainScreen').style.display = 'none';
+            hideLoading();
+        }
+    });
+
+    // ====================================================
+    // データ操作（Supabase）
+    // ====================================================
+
+    async function loadEvents() {
+        const { data, error } = await sb.from('events').select('*');
+        if (error) { console.error(error); return; }
+        events = (data || []).map(row => ({
+            id: row.id,
+            date: row.date,
+            title: row.title,
+            category: row.category,
+            subCategory: row.sub_category,
+            startTime: row.start_time,
+            endTime: row.end_time,
+            youtubeUrl: row.youtube_url,
+            color: row.color
+        }));
+    }
+
+    async function saveEvent() {
+        const title = document.getElementById('eventTitle').value;
+        const category = document.getElementById('eventCategory').value;
+        const subCategory = document.getElementById('eventSubCategory').value;
+        const youtubeUrl = document.getElementById('youtubeUrl').value;
+
+        if (!title) { alert('タイトルを入力してください'); return; }
+
+        const startTime = minutesToTime(currentStartTime);
+        const endTime = minutesToTime(currentEndTime);
+        const color = SUB_CATEGORY_COLORS[subCategory] || CATEGORIES[category].color;
+
+        alert('デバッグ: 保存開始 editingEventId=' + editingEventId + ' selectedDate=' + selectedDate + ' currentUser=' + (currentUser ? currentUser.id : 'null'));
+
+        showLoading();
+        try {
+            if (editingEventId) {
+                alert('デバッグ: 更新処理');
+                const { error } = await sb.from('events').update({
+                    date: selectedDate, title, category,
+                    sub_category: subCategory,
+                    start_time: startTime, end_time: endTime,
+                    youtube_url: youtubeUrl, color
+                }).eq('id', editingEventId);
+                if (error) { alert('更新エラー: ' + JSON.stringify(error)); hideLoading(); return; }
+                alert('デバッグ: 更新成功');
+                const idx = events.findIndex(e => e.id === editingEventId);
+                events[idx] = { id: editingEventId, date: selectedDate, title, category, subCategory, startTime, endTime, youtubeUrl, color };
+            } else {
+                alert('デバッグ: 新規追加処理');
+                const newId = Date.now().toString();
+                const { error } = await sb.from('events').insert({
+                    id: newId,
+                    user_id: currentUser.id,
+                    date: selectedDate, title, category,
+                    sub_category: subCategory,
+                    start_time: startTime, end_time: endTime,
+                    youtube_url: youtubeUrl, color
+                });
+                if (error) { alert('追加エラー: ' + JSON.stringify(error)); hideLoading(); return; }
+                alert('デバッグ: 新規追加成功');
+                events.push({ id: newId, date: selectedDate, title, category, subCategory, startTime, endTime, youtubeUrl, color });
+            }
+        } catch(e) {
+            alert('デバッグ: 例外発生 ' + e.message);
+            hideLoading();
+            return;
+        }
+
+        hideLoading();
+        renderCalendar();
+        closeModal();
+    }
+
+    async function deleteEvent() {
+        if (!confirm('この予定を削除しますか？')) return;
+        showLoading();
+        const { error } = await sb.from('events').delete().eq('id', editingEventId);
+        if (error) { alert('削除に失敗しました'); hideLoading(); return; }
+        events = events.filter(e => e.id !== editingEventId);
+        hideLoading();
+        renderCalendar();
+        closeModal();
+    }
+
+    // ====================================================
+    // カレンダー描画
+    // ====================================================
+
+    function initFilters() {
+        const container = document.getElementById('filterCheckboxes');
+        container.innerHTML = '';
+        Object.keys(CATEGORIES).forEach(category => {
+            activeFilters.add(category);
+            const item = document.createElement('div');
+            item.className = 'filter-item';
+            item.innerHTML = `
+                <input type="checkbox" id="filter-${category}" checked onchange="toggleFilter('${category}')">
+                <label for="filter-${category}" style="color: ${CATEGORIES[category].color}">${category}</label>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function toggleFilter(category) {
+        if (activeFilters.has(category)) { activeFilters.delete(category); }
+        else { activeFilters.add(category); }
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const calendar = document.getElementById('calendar');
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        document.getElementById('currentMonth').textContent = `${year}年 ${month + 1}月`;
+        calendar.innerHTML = '';
+
+        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+        weekdays.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'calendar-header';
+            header.textContent = day;
+            calendar.appendChild(header);
+        });
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDay = firstDay.getDay();
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+        for (let i = startDay - 1; i >= 0; i--) calendar.appendChild(createDayCell(prevMonthLastDay - i, true, year, month - 1));
+        for (let day = 1; day <= lastDay.getDate(); day++) calendar.appendChild(createDayCell(day, false, year, month));
+
+        const totalCells = calendar.children.length - 7;
+        const remaining = 42 - totalCells;
+        for (let day = 1; day <= remaining; day++) calendar.appendChild(createDayCell(day, true, year, month + 1));
+    }
+
+    function createDayCell(day, isOtherMonth, year, month) {
+        const div = document.createElement('div');
+        div.className = 'calendar-day' + (isOtherMonth ? ' other-month' : '');
+
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'day-number';
+        dayNumber.textContent = day;
+        div.appendChild(dayNumber);
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayEvents = events.filter(e => e.date === dateStr && activeFilters.has(e.category));
+
+        dayEvents.forEach(event => {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event-item';
+            eventDiv.style.background = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
+            const shortTitle = event.title.length > 10 ? event.title.substring(0, 10) + '...' : event.title;
+            eventDiv.innerHTML = `${shortTitle}<br>${event.startTime}-${event.endTime}`;
+            eventDiv.onclick = (e) => { e.stopPropagation(); openEditModal(event); };
+            div.appendChild(eventDiv);
+        });
+
+        div.onclick = () => { if (!isOtherMonth) openAddModal(dateStr); };
+        return div;
+    }
+
+    function changeMonth(delta) {
+        currentDate.setMonth(currentDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    // ====================================================
+    // モーダル
+    // ====================================================
+
+    function updateSubCategories() {
+        const category = document.getElementById('eventCategory').value;
+        const subSelect = document.getElementById('eventSubCategory');
+        subSelect.innerHTML = '';
+        CATEGORIES[category].subCategories.forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub;
+            option.textContent = sub;
+            subSelect.appendChild(option);
+        });
+    }
+
+    function adjustTime(type, minutes) {
+        const el = document.getElementById(type === 'start' ? 'startTimeDisplay' : 'endTimeDisplay');
+        let t = timeToMinutes(el.value) + minutes;
+        if (t < 0) t += 24 * 60;
+        if (t >= 24 * 60) t -= 24 * 60;
+        el.value = minutesToTime(t);
+        if (type === 'start') currentStartTime = t;
+        else currentEndTime = t;
+    }
+
+    function minutesToTime(m) {
+        return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    }
+
+    function timeToMinutes(t) {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    function openAddModal(date) {
+        selectedDate = date;
+        editingEventId = null;
+        document.getElementById('modalHeader').textContent = '予定を追加';
+        document.getElementById('youtubeUrl').value = '';
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventCategory').value = '配信';
+        updateSubCategories();
+        currentStartTime = 22 * 60;
+        currentEndTime = 60;
+        document.getElementById('startTimeDisplay').value = '22:00';
+        document.getElementById('endTimeDisplay').value = '01:00';
+        document.getElementById('deleteBtn').style.display = 'none';
+        document.getElementById('watchBtn').style.display = 'none';
+        document.getElementById('eventModal').classList.add('active');
+    }
+
+    function openEditModal(event) {
+        selectedDate = event.date;
+        editingEventId = event.id;
+        document.getElementById('modalHeader').textContent = '予定を編集';
+        document.getElementById('youtubeUrl').value = event.youtubeUrl || '';
+        document.getElementById('eventTitle').value = event.title;
+        document.getElementById('eventCategory').value = event.category;
+        updateSubCategories();
+        document.getElementById('eventSubCategory').value = event.subCategory;
+        currentStartTime = timeToMinutes(event.startTime);
+        currentEndTime = timeToMinutes(event.endTime);
+        document.getElementById('startTimeDisplay').value = event.startTime;
+        document.getElementById('endTimeDisplay').value = event.endTime;
+        document.getElementById('deleteBtn').style.display = 'block';
+        const watchBtn = document.getElementById('watchBtn');
+        if (event.youtubeUrl) {
+            watchBtn.style.display = 'block';
+            watchBtn.onclick = (e) => { e.stopPropagation(); window.open(event.youtubeUrl, '_blank'); };
+        } else {
+            watchBtn.style.display = 'none';
+        }
+        document.getElementById('eventModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('eventModal').classList.remove('active');
+    }
+
+    // ====================================================
+    // YouTube
+    // ====================================================
+
+    async function fetchYouTubeData() {
+        const url = document.getElementById('youtubeUrl').value;
+        const videoId = extractVideoId(url);
+        if (!videoId) { alert('正しいYouTube URLを入力してください'); return; }
+
+        try {
+            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,liveStreamingDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`);
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                const video = data.items[0];
+                document.getElementById('eventTitle').value = video.snippet.title;
+                if (video.liveStreamingDetails) {
+                    const actualStart = video.liveStreamingDetails.actualStartTime;
+                    const actualEnd = video.liveStreamingDetails.actualEndTime;
+                    if (actualStart) {
+                        const start = new Date(actualStart);
+                        const st = `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`;
+                        currentStartTime = timeToMinutes(st);
+                        document.getElementById('startTimeDisplay').value = st;
+                    }
+                    if (actualEnd) {
+                        const end = new Date(actualEnd);
+                        const et = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
+                        currentEndTime = timeToMinutes(et);
+                        document.getElementById('endTimeDisplay').value = et;
+                    } else if (actualStart) {
+                        const dur = parseDuration(video.contentDetails.duration);
+                        currentEndTime = (currentStartTime + dur) % (24 * 60);
+                        document.getElementById('endTimeDisplay').value = minutesToTime(currentEndTime);
+                    }
+                } else {
+                    const published = new Date(video.snippet.publishedAt);
+                    const st = `${String(published.getHours()).padStart(2,'0')}:${String(published.getMinutes()).padStart(2,'0')}`;
+                    currentStartTime = timeToMinutes(st);
+                    document.getElementById('startTimeDisplay').value = st;
+                    const dur = parseDuration(video.contentDetails.duration);
+                    currentEndTime = (currentStartTime + dur) % (24 * 60);
+                    document.getElementById('endTimeDisplay').value = minutesToTime(currentEndTime);
+                }
+                alert('データを取得しました！');
+            } else {
+                alert('動画が見つかりませんでした');
+            }
+        } catch (e) {
+            alert('エラーが発生しました: ' + e.message);
+        }
+    }
+
+    function extractVideoId(url) {
+        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+    }
+
+    function parseDuration(duration) {
+        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        return (parseInt(match[1]||0)*60) + parseInt(match[2]||0) + (parseInt(match[3]||0) > 30 ? 1 : 0);
+    }
+
+    async function bulkFetchVideos() {
+        const channelInput = document.getElementById('channelUrl').value;
+        const startDate = document.getElementById('fetchStartDate').value;
+        const endDate = document.getElementById('fetchEndDate').value;
+
+        if (!channelInput) { alert('チャンネルURLまたはIDを入力してください'); return; }
+        if (!startDate || !endDate) { alert('取得する期間を指定してください'); return; }
+
+        const channelId = extractChannelId(channelInput);
+        const publishedAfter = new Date(startDate).toISOString();
+        const publishedBefore = new Date(endDate + 'T23:59:59').toISOString();
+
+        showLoading();
+        try {
+            const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&publishedAfter=${publishedAfter}&publishedBefore=${publishedBefore}&maxResults=50&order=date&type=video&key=${YOUTUBE_API_KEY}`;
+            const searchData = await (await fetch(searchUrl)).json();
+            if (!searchData.items || searchData.items.length === 0) { alert('指定期間の動画が見つかりませんでした'); hideLoading(); return; }
+
+            const videoIds = searchData.items.map(i => i.id.videoId).join(',');
+            const detailsData = await (await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,liveStreamingDetails&id=${videoIds}&key=${YOUTUBE_API_KEY}`)).json();
+
+            const newEvents = [];
+            detailsData.items.forEach(video => {
+                let videoDate, startTime, endTime;
+                if (video.liveStreamingDetails && video.liveStreamingDetails.actualStartTime) {
+                    const start = new Date(video.liveStreamingDetails.actualStartTime);
+                    videoDate = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-${String(start.getDate()).padStart(2,'0')}`;
+                    startTime = `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`;
+                    if (video.liveStreamingDetails.actualEndTime) {
+                        const end = new Date(video.liveStreamingDetails.actualEndTime);
+                        endTime = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
+                    } else {
+                        const dur = parseDuration(video.contentDetails.duration);
+                        endTime = minutesToTime((timeToMinutes(startTime) + dur) % (24*60));
+                    }
+                } else {
+                    const published = new Date(video.snippet.publishedAt);
+                    videoDate = `${published.getFullYear()}-${String(published.getMonth()+1).padStart(2,'0')}-${String(published.getDate()).padStart(2,'0')}`;
+                    startTime = `${String(published.getHours()).padStart(2,'0')}:${String(published.getMinutes()).padStart(2,'0')}`;
+                    const dur = parseDuration(video.contentDetails.duration);
+                    endTime = minutesToTime((timeToMinutes(startTime) + dur) % (24*60));
+                }
+                newEvents.push({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    user_id: currentUser.id,
+                    date: videoDate, title: video.snippet.title,
+                    category: '配信', sub_category: 'その他',
+                    start_time: startTime, end_time: endTime,
+                    youtube_url: `https://www.youtube.com/watch?v=${video.id}`,
+                    color: SUB_CATEGORY_COLORS['その他']
+                });
+            });
+
+            const { error } = await sb.from('events').insert(newEvents);
+            if (error) { alert('保存に失敗しました: ' + error.message); hideLoading(); return; }
+
+            newEvents.forEach(e => events.push({
+                id: e.id, date: e.date, title: e.title,
+                category: e.category, subCategory: e.sub_category,
+                startTime: e.start_time, endTime: e.end_time,
+                youtubeUrl: e.youtube_url, color: e.color
+            }));
+
+            renderCalendar();
+            alert(`${newEvents.length}件の動画を追加しました！\nカテゴリは後で編集してね。`);
+        } catch (e) {
+            alert('エラーが発生しました: ' + e.message);
+        }
+        hideLoading();
+    }
+
+    function extractChannelId(input) {
+        const patterns = [/youtube\.com\/channel\/([a-zA-Z0-9_-]+)/, /youtube\.com\/@([a-zA-Z0-9_-]+)/, /youtube\.com\/c\/([a-zA-Z0-9_-]+)/];
+        for (let p of patterns) { const m = input.match(p); if (m) return m[1]; }
+        return input.trim();
+    }
+
+    // ====================================================
+    // JSON バックアップ・復元
+    // ====================================================
+
+    function exportJSON() {
+        const dataStr = JSON.stringify(events, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `schedule-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    }
+
+    async function importJSON() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    showLoading();
+                    const rows = imported.map(ev => ({
+                        id: ev.id || Date.now().toString() + Math.random().toString(36).substr(2,9),
+                        user_id: currentUser.id,
+                        date: ev.date, title: ev.title,
+                        category: ev.category, sub_category: ev.subCategory,
+                        start_time: ev.startTime, end_time: ev.endTime,
+                        youtube_url: ev.youtubeUrl, color: ev.color
+                    }));
+                    const { error } = await sb.from('events').upsert(rows);
+                    if (error) { alert('復元に失敗しました: ' + error.message); hideLoading(); return; }
+                    await loadEvents();
+                    renderCalendar();
+                    alert('データを復元しました！');
+                    hideLoading();
+                } catch (err) {
+                    alert('ファイルの読み込みに失敗しました');
+                    hideLoading();
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    // Escキー・背景クリックでモーダルを閉じる
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    document.getElementById('eventModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+</script>
+</body>
+</html>
