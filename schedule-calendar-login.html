@@ -1118,17 +1118,38 @@
         }
 
         results.forEach(event => {
+            const accentColor = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
             const div = document.createElement('div');
-            div.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; background:#f8f9ff; border-left:4px solid ' + (SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color) + ';';
+            div.style.cssText = 'display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; background:#f8f9ff; border-left:4px solid ' + accentColor + ';';
 
+            // サムネイル
+            if (event.youtubeUrl) {
+                const videoId = extractVideoId(event.youtubeUrl);
+                if (videoId) {
+                    const thumb = document.createElement('img');
+                    thumb.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                    thumb.style.cssText = 'width:120px; height:68px; object-fit:cover; border-radius:6px; flex-shrink:0; cursor:pointer;';
+                    thumb.onclick = (e) => { e.stopPropagation(); window.open(event.youtubeUrl, '_blank'); };
+                    div.appendChild(thumb);
+                }
+            } else {
+                // URLなしの場合はプレースホルダー
+                const placeholder = document.createElement('div');
+                placeholder.style.cssText = 'width:120px; height:68px; border-radius:6px; flex-shrink:0; background:#ddd; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:11px;';
+                placeholder.textContent = 'No Image';
+                div.appendChild(placeholder);
+            }
+
+            // テキスト情報
             const info = document.createElement('div');
             info.style.cssText = 'flex:1; min-width:0;';
             info.innerHTML = `
-                <div style="font-size:12px; color:#888;">${event.date}　${event.startTime}〜${event.endTime}　<span style="background:${SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color}; color:white; padding:1px 6px; border-radius:3px; font-size:11px;">${event.subCategory || event.category}</span></div>
-                <div style="font-size:14px; font-weight:bold; color:#333; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${event.title}</div>
+                <div style="font-size:12px; color:#888; margin-bottom:4px;">${event.date}　${event.startTime}〜${event.endTime}　<span style="background:${accentColor}; color:white; padding:1px 6px; border-radius:3px; font-size:11px;">${event.subCategory || event.category}</span></div>
+                <div style="font-size:14px; font-weight:bold; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${event.title}</div>
             `;
             div.appendChild(info);
 
+            // 視聴ボタン
             if (event.youtubeUrl) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
