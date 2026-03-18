@@ -262,18 +262,18 @@
             white-space: nowrap;
         }
 
-        .time-input-group { align-items: center; gap: 10px; }
+        .time-input-group { display: flex; align-items: center; gap: 10px; }
         .time-display {
             font-size: 18px;
             font-weight: bold;
-            min-width: 100px;
+            min-width: 120px;
             text-align: center;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 5px;
         }
 
-        .time-buttons { flex-direction: column; gap: 5px; }
+        .time-buttons { display: flex; flex-direction: column; gap: 5px; }
         .time-buttons button {
             padding: 5px 15px;
             background: #667eea;
@@ -317,6 +317,99 @@
         }
 
         #loadingOverlay.active { display: flex; }
+
+        /* ====== スマホ用スタイル ====== */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+
+            .container { padding: 15px; border-radius: 12px; }
+
+            .header-row { flex-direction: column; gap: 10px; align-items: flex-start; }
+            .header-row h1 { font-size: 20px; }
+            .header-row div { width: 100%; display: flex; justify-content: flex-end; }
+
+            .calendar-nav { gap: 6px; }
+            .calendar-nav button { padding: 7px 12px; font-size: 13px; }
+            #yearSelect, #monthSelect { font-size: 13px; padding: 5px 6px; }
+
+            /* カレンダーをリスト形式に切り替え */
+            .calendar { display: none; }
+            #mobileCalendar { display: block; }
+
+            .filter-area { padding: 10px; }
+            .filter-checkboxes { gap: 10px; }
+
+            .data-management { flex-wrap: wrap; }
+            .data-management button { font-size: 13px; padding: 8px 14px; }
+        }
+
+        /* スマホリスト */
+        #mobileCalendar { display: none; }
+
+        .mobile-day-group { margin-bottom: 6px; }
+
+        .mobile-day-header {
+            padding: 6px 10px;
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .mobile-day-header.no-events {
+            background: #e8eaff;
+            color: #999;
+            border-radius: 6px;
+            font-weight: normal;
+        }
+
+        .mobile-event-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            margin-bottom: 2px;
+            cursor: pointer;
+        }
+
+        .mobile-event-item:last-child { border-radius: 0 0 6px 6px; margin-bottom: 0; }
+
+        .mobile-event-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .mobile-event-info { flex: 1; min-width: 0; }
+
+        .mobile-event-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mobile-event-time { font-size: 11px; color: #888; margin-top: 2px; }
+
+        .mobile-add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            margin-top: 10px;
+            cursor: pointer;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -365,6 +458,7 @@
         </div>
 
         <div class="calendar" id="calendar"></div>
+        <div id="mobileCalendar"></div>
 
         <!-- 一括取得エリア -->
         <div style="margin-top: 20px; padding: 20px; background: #f8f9ff; border-radius: 10px;">
@@ -416,7 +510,7 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
                     <input type="checkbox" id="searchStarred" style="width:16px; height:16px; cursor:pointer;">
-                    <span>⭐ コメントのみ</span>
+                    <span>⭐ コメント読まれたのみ</span>
                 </label>
             </div>
         </div>
@@ -466,7 +560,7 @@
             <select id="eventSubCategory"></select>
         </div>
 
-        <div>
+        <div class="form-group">
             <label>開始時間</label>
             <div class="time-input-group">
                 <input type="time" class="time-display" id="startTimeDisplay" value="22:00">
@@ -477,7 +571,7 @@
             </div>
         </div>
 
-        <div>
+        <div class="form-group">
             <label>終了時間</label>
             <div class="time-input-group">
                 <input type="time" class="time-display" id="endTimeDisplay" value="01:00">
@@ -495,7 +589,7 @@
             </label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:15px;">
                 <input type="checkbox" id="isStarred" style="width:18px; height:18px; cursor:pointer;">
-                <span>⭐ コメント</span>
+                <span>⭐ コメント読まれた</span>
             </label>
         </div>
 
@@ -782,6 +876,8 @@
         const totalCells = calendar.children.length - 7;
         const remaining = 42 - totalCells;
         for (let day = 1; day <= remaining; day++) calendar.appendChild(createDayCell(day, true, year, month + 1));
+
+        renderMobileCalendar();
     }
 
     function createDayCell(day, isOtherMonth, year, month) {
@@ -808,6 +904,72 @@
 
         div.onclick = () => { if (!isOtherMonth) openAddModal(dateStr); };
         return div;
+    }
+
+    function renderMobileCalendar() {
+        const container = document.getElementById('mobileCalendar');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+
+        for (let day = 1; day <= lastDay; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayEvents = events.filter(e => e.date === dateStr && activeFilters.has(e.category));
+
+            const weekday = ['日', '月', '火', '水', '木', '金', '土'][new Date(year, month, day).getDay()];
+            const weekdayColor = weekday === '日' ? '#e74c3c' : weekday === '土' ? '#3498db' : 'white';
+
+            if (dayEvents.length === 0) return; // 予定のない日は非表示
+
+            const group = document.createElement('div');
+            group.className = 'mobile-day-group';
+
+            const header = document.createElement('div');
+            header.className = 'mobile-day-header';
+            header.innerHTML = `<span style="color:${weekdayColor}">${month + 1}/${day}（${weekday}）</span>`;
+            group.appendChild(header);
+
+            dayEvents.forEach(event => {
+                const item = document.createElement('div');
+                item.className = 'mobile-event-item';
+                item.style.borderLeftColor = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
+
+                const dot = document.createElement('div');
+                dot.className = 'mobile-event-dot';
+                dot.style.background = SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color;
+
+                const info = document.createElement('div');
+                info.className = 'mobile-event-info';
+                info.innerHTML = `
+                    <div class="mobile-event-title">${event.isFavorite ? '💗 ' : ''}${event.isStarred ? '⭐ ' : ''}${event.title}</div>
+                    <div class="mobile-event-time">${event.startTime}〜${event.endTime}　${event.subCategory || event.category}</div>
+                `;
+
+                item.appendChild(dot);
+                item.appendChild(info);
+                item.onclick = () => openEditModal(event);
+                group.appendChild(item);
+            });
+
+            container.appendChild(group);
+        }
+
+        // 予定がない場合
+        if (container.children.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#aaa; padding:30px;">この月の予定はありません</div>';
+        }
+
+        // 日付追加ボタン
+        const addBtn = document.createElement('div');
+        addBtn.className = 'mobile-add-btn';
+        addBtn.textContent = '＋ 予定を追加';
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        addBtn.onclick = () => openAddModal(year === today.getFullYear() && month === today.getMonth() ? todayStr : `${year}-${String(month+1).padStart(2,'0')}-01`);
+        container.appendChild(addBtn);
     }
 
     function changeMonth(delta) {
