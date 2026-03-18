@@ -452,8 +452,8 @@
     // ====================================================
     // ここを自分のSupabase情報に書き換えてね！
     // ====================================================
-    const SUPABASE_URL = 'https://dzlrvtkfbcoaeeoahrtq.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_Fs3svHkD8Q90gFxLuwuAow_lRYtaY_d';
+    const SUPABASE_URL = 'ここにProject URLを貼り付け';
+    const SUPABASE_KEY = 'ここにPublishable keyを貼り付け';
     // ====================================================
 
     const YOUTUBE_API_KEY = 'AIzaSyCNOHvaz0HS2c-kq7hDjmu4LEkZOn7EVuI';
@@ -782,7 +782,7 @@
         const watchBtn = document.getElementById('watchBtn');
         if (event.youtubeUrl) {
             watchBtn.style.display = 'block';
-            watchBtn.onclick = () => window.open(event.youtubeUrl, '_blank');
+            watchBtn.onclick = (e) => { e.stopPropagation(); window.open(event.youtubeUrl, '_blank'); };
         } else {
             watchBtn.style.display = 'none';
         }
