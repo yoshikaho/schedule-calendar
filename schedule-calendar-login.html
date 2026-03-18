@@ -536,7 +536,13 @@
 
     // ログイン状態の変化を監視
     sb.auth.onAuthStateChange(async (event, session) => {
+        // TOKEN_REFRESHEDは無視（別タブを開いた時などに発火するが再初期化不要）
+        if (event === 'TOKEN_REFRESHED') return;
+
         if (session) {
+            // すでにログイン済みの場合は再初期化しない
+            if (currentUser && currentUser.id === session.user.id) return;
+
             currentUser = session.user;
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('mainScreen').style.display = 'block';
