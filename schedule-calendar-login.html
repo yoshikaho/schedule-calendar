@@ -586,29 +586,44 @@
         const endTime = minutesToTime(currentEndTime);
         const color = SUB_CATEGORY_COLORS[subCategory] || CATEGORIES[category].color;
 
+        alert('デバッグ: 保存開始
+editingEventId=' + editingEventId + '
+selectedDate=' + selectedDate + '
+currentUser=' + (currentUser ? currentUser.id : 'null'));
+
         showLoading();
-        if (editingEventId) {
-            const { error } = await sb.from('events').update({
-                date: selectedDate, title, category,
-                sub_category: subCategory,
-                start_time: startTime, end_time: endTime,
-                youtube_url: youtubeUrl, color
-            }).eq('id', editingEventId);
-            if (error) { alert('保存に失敗しました'); hideLoading(); return; }
-            const idx = events.findIndex(e => e.id === editingEventId);
-            events[idx] = { id: editingEventId, date: selectedDate, title, category, subCategory, startTime, endTime, youtubeUrl, color };
-        } else {
-            const newId = Date.now().toString();
-            const { error } = await sb.from('events').insert({
-                id: newId,
-                user_id: currentUser.id,
-                date: selectedDate, title, category,
-                sub_category: subCategory,
-                start_time: startTime, end_time: endTime,
-                youtube_url: youtubeUrl, color
-            });
-            if (error) { alert('保存に失敗しました'); hideLoading(); return; }
-            events.push({ id: newId, date: selectedDate, title, category, subCategory, startTime, endTime, youtubeUrl, color });
+        try {
+            if (editingEventId) {
+                alert('デバッグ: 更新処理');
+                const { error } = await sb.from('events').update({
+                    date: selectedDate, title, category,
+                    sub_category: subCategory,
+                    start_time: startTime, end_time: endTime,
+                    youtube_url: youtubeUrl, color
+                }).eq('id', editingEventId);
+                if (error) { alert('更新エラー: ' + JSON.stringify(error)); hideLoading(); return; }
+                alert('デバッグ: 更新成功');
+                const idx = events.findIndex(e => e.id === editingEventId);
+                events[idx] = { id: editingEventId, date: selectedDate, title, category, subCategory, startTime, endTime, youtubeUrl, color };
+            } else {
+                alert('デバッグ: 新規追加処理');
+                const newId = Date.now().toString();
+                const { error } = await sb.from('events').insert({
+                    id: newId,
+                    user_id: currentUser.id,
+                    date: selectedDate, title, category,
+                    sub_category: subCategory,
+                    start_time: startTime, end_time: endTime,
+                    youtube_url: youtubeUrl, color
+                });
+                if (error) { alert('追加エラー: ' + JSON.stringify(error)); hideLoading(); return; }
+                alert('デバッグ: 新規追加成功');
+                events.push({ id: newId, date: selectedDate, title, category, subCategory, startTime, endTime, youtubeUrl, color });
+            }
+        } catch(e) {
+            alert('デバッグ: 例外発生 ' + e.message);
+            hideLoading();
+            return;
         }
 
         hideLoading();
