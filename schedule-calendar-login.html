@@ -344,7 +344,10 @@
     <div class="container">
         <div class="header-row">
             <h1>🎮 推しスケジュールカレンダー</h1>
-            <button class="logout-btn" onclick="logout()">ログアウト</button>
+            <div style="display:flex; gap:10px;">
+                <button class="logout-btn" onclick="openSearchModal()" style="background:#667eea; color:white;">🔍 検索</button>
+                <button class="logout-btn" onclick="logout()">ログアウト</button>
+            </div>
         </div>
 
         <div class="filter-area">
@@ -380,6 +383,40 @@
         <div class="data-management">
             <button onclick="exportJSON()">JSONバックアップ</button>
             <button onclick="importJSON()">JSON復元</button>
+        </div>
+    </div>
+</div>
+
+<!-- 検索モーダル -->
+<div class="modal" id="searchModal">
+    <div class="modal-content" style="max-width:700px;">
+        <div class="modal-header">🔍 検索</div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <select id="searchCategory" onchange="updateSearchSubCategories()" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; flex:1;">
+                    <option value="">カテゴリ（すべて）</option>
+                    <option value="配信">配信</option>
+                    <option value="大会">大会</option>
+                    <option value="オフイベ">オフラインイベント</option>
+                    <option value="グッズ">グッズ発売</option>
+                </select>
+                <select id="searchSubCategory" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; flex:1;">
+                    <option value="">サブカテゴリ（すべて）</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="searchKeyword" placeholder="キーワードで検索" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; flex:1;" onkeydown="if(event.key==='Enter') doSearch()">
+                <button type="button" onclick="doSearch()" style="padding:8px 20px; background:#667eea; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap;">検索</button>
+            </div>
+        </div>
+
+        <div id="searchResultCount" style="font-size:13px; color:#888; margin-bottom:10px;"></div>
+
+        <div id="searchResults" style="display:flex; flex-direction:column; gap:6px; max-height:400px; overflow-y:auto;"></div>
+
+        <div style="margin-top:20px; text-align:right;">
+            <button type="button" onclick="closeSearchModal()" style="padding:10px 24px; background:#ddd; color:#333; border:none; border-radius:8px; cursor:pointer; font-size:14px;">閉じる</button>
         </div>
     </div>
 </div>
@@ -686,9 +723,9 @@
             yearSelect.appendChild(opt);
         }
 
-        // 月プルダウン（1月〜12月、上から新しい順）
+        // 月プルダウン（1月〜12月、上から古い順）
         monthSelect.innerHTML = '';
-        for (let m = 12; m >= 1; m--) {
+        for (let m = 1; m <= 12; m++) {
             const opt = document.createElement('option');
             opt.value = m;
             opt.textContent = m + '月';
@@ -1025,9 +1062,90 @@
         input.click();
     }
 
+    // ====================================================
+    // 検索機能
+    // ====================================================
+
+    function openSearchModal() {
+        document.getElementById('searchKeyword').value = '';
+        document.getElementById('searchCategory').value = '';
+        document.getElementById('searchSubCategory').innerHTML = '<option value="">サブカテゴリ（すべて）</option>';
+        document.getElementById('searchResults').innerHTML = '';
+        document.getElementById('searchResultCount').textContent = '';
+        document.getElementById('searchModal').classList.add('active');
+    }
+
+    function closeSearchModal() {
+        document.getElementById('searchModal').classList.remove('active');
+    }
+
+    function updateSearchSubCategories() {
+        const category = document.getElementById('searchCategory').value;
+        const subSelect = document.getElementById('searchSubCategory');
+        subSelect.innerHTML = '<option value="">サブカテゴリ（すべて）</option>';
+        if (category && CATEGORIES[category]) {
+            CATEGORIES[category].subCategories.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub;
+                subSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function doSearch() {
+        const keyword = document.getElementById('searchKeyword').value.trim().toLowerCase();
+        const category = document.getElementById('searchCategory').value;
+        const subCategory = document.getElementById('searchSubCategory').value;
+
+        let results = [...events];
+
+        if (category) results = results.filter(e => e.category === category);
+        if (subCategory) results = results.filter(e => e.subCategory === subCategory);
+        if (keyword) results = results.filter(e => e.title.toLowerCase().includes(keyword));
+
+        // 新しい日付が上
+        results.sort((a, b) => b.date.localeCompare(a.date));
+
+        const container = document.getElementById('searchResults');
+        const countEl = document.getElementById('searchResultCount');
+        container.innerHTML = '';
+        countEl.textContent = `${results.length}件見つかりました`;
+
+        if (results.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#aaa; padding:20px;">該当する予定が見つかりませんでした</div>';
+            return;
+        }
+
+        results.forEach(event => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; background:#f8f9ff; border-left:4px solid ' + (SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color) + ';';
+
+            const info = document.createElement('div');
+            info.style.cssText = 'flex:1; min-width:0;';
+            info.innerHTML = `
+                <div style="font-size:12px; color:#888;">${event.date}　${event.startTime}〜${event.endTime}　<span style="background:${SUB_CATEGORY_COLORS[event.subCategory] || CATEGORIES[event.category].color}; color:white; padding:1px 6px; border-radius:3px; font-size:11px;">${event.subCategory || event.category}</span></div>
+                <div style="font-size:14px; font-weight:bold; color:#333; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${event.title}</div>
+            `;
+            div.appendChild(info);
+
+            if (event.youtubeUrl) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '▶ 視聴';
+                btn.style.cssText = 'padding:6px 12px; background:#f08e8e; color:white; border:none; border-radius:6px; cursor:pointer; font-size:12px; white-space:nowrap; flex-shrink:0;';
+                btn.onclick = (e) => { e.stopPropagation(); window.open(event.youtubeUrl, '_blank'); };
+                div.appendChild(btn);
+            }
+
+            container.appendChild(div);
+        });
+    }
+
     // Escキー・背景クリックでモーダルを閉じる
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSearchModal(); } });
     document.getElementById('eventModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+    document.getElementById('searchModal').addEventListener('click', function(e) { if (e.target === this) closeSearchModal(); });
 </script>
 </body>
 </html>
