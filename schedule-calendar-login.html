@@ -922,7 +922,7 @@
             const weekday = ['日', '月', '火', '水', '木', '金', '土'][new Date(year, month, day).getDay()];
             const weekdayColor = weekday === '日' ? '#e74c3c' : weekday === '土' ? '#3498db' : 'white';
 
-            if (dayEvents.length === 0) return; // 予定のない日は非表示
+            if (dayEvents.length === 0) continue; // 予定のない日はスキップ
 
             const group = document.createElement('div');
             group.className = 'mobile-day-group';
