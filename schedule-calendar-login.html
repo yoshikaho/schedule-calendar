@@ -319,6 +319,9 @@
         #loadingOverlay.active { display: flex; }
 
         /* ====== スマホ用スタイル ====== */
+        /* スマホリスト（デフォルトは非表示） */
+        #mobileCalendar { display: none; }
+
         @media (max-width: 600px) {
             body { padding: 10px; }
 
@@ -342,9 +345,6 @@
             .data-management { flex-wrap: wrap; }
             .data-management button { font-size: 13px; padding: 8px 14px; }
         }
-
-        /* スマホリスト */
-        #mobileCalendar { display: none; }
 
         .mobile-day-group { margin-bottom: 6px; }
 
