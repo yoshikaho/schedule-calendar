@@ -743,9 +743,19 @@
     // ====================================================
 
     async function loadEvents() {
-        const { data, error } = await sb.from('events').select('*').limit(10000);
-        if (error) { console.error(error); return; }
-        events = (data || []).map(row => ({
+        // 1000件制限を回避するため、1000件ずつ分けて全件取得
+        let allData = [];
+        let from = 0;
+        const batchSize = 1000;
+        while (true) {
+            const { data, error } = await sb.from('events').select('*').range(from, from + batchSize - 1);
+            if (error) { console.error(error); break; }
+            if (!data || data.length === 0) break;
+            allData = allData.concat(data);
+            if (data.length < batchSize) break;
+            from += batchSize;
+        }
+        events = allData.map(row => ({
             id: row.id,
             date: row.date,
             title: row.title,
