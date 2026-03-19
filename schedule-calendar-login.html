@@ -950,7 +950,22 @@
 
                 item.appendChild(dot);
                 item.appendChild(info);
-                item.onclick = () => openEditModal(event);
+
+                // サムネイル（YouTubeのURLがある場合）
+                if (event.youtubeUrl) {
+                    const videoId = extractVideoId(event.youtubeUrl);
+                    if (videoId) {
+                        const thumb = document.createElement('img');
+                        thumb.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                        thumb.style.cssText = 'width:100%; border-radius:6px; margin-top:6px; display:block;';
+                        thumb.loading = 'lazy';
+                        thumb.onclick = (e) => { e.stopPropagation(); window.open(event.youtubeUrl, '_blank'); };
+                        item.style.flexWrap = 'wrap';
+                        item.appendChild(thumb);
+                    }
+                }
+
+                item.onclick = (e) => { if (e.target.tagName !== 'IMG') openEditModal(event); };
                 group.appendChild(item);
             });
 
